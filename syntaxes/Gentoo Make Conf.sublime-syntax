@@ -1,0 +1,197 @@
+%YAML 1.2
+---
+# Syntax highlighting for Gentoo make.conf and make.globals files.
+# Based on gentoo/gentoo-syntax vim plugin.
+# https://github.com/gentoo/gentoo-syntax
+name: Gentoo Make Conf
+scope: source.gentoo.make-conf
+version: 2
+
+file_extensions:
+  - conf
+  - globals
+
+first_line_match: |-
+  (?xi:
+    ^ \s* \# .*make\.conf         # make.conf comment header
+  | ^ \s* \# .*portage            # portage config comment header
+  | ^ [A-Z_]+ \s* = \s* "        # variable assignment typical of make.conf
+  )
+
+variables:
+  identifier: '[a-zA-Z_][a-zA-Z0-9_]*'
+  # Well-known "naughty" variables that should not be set in make.conf
+  naughty_vars: 'LDFLAGS|ASFLAGS|ARCH|ELIBC|KERNEL|USERLAND'
+  # Known portage variables
+  portage_vars: |-
+    (?x:
+      ACCEPT_KEYWORDS | ACCEPT_LICENSE | ACCEPT_PROPERTIES | ACCEPT_RESTRICT
+    | BINPKG_COMPRESS | BINPKG_COMPRESS_FLAGS
+    | BUILD_PREFIX | CBUILD | CHOST
+    | CCACHE_DIR | CCACHE_SIZE | CCACHE_SLOPPINESS
+    | CFLAGS | CPPFLAGS | CXXFLAGS | FFLAGS | FCFLAGS
+    | CLEAN_DELAY | COLLISION_IGNORE | CONFIG_PROTECT | CONFIG_PROTECT_MASK
+    | DISTDIR | DISTCC_DIR | DISTCC_HOSTS
+    | DOC_SYMLINKS_DIR | EMERGE_DEFAULT_OPTS | FEATURES
+    | FETCHCOMMAND | FTP_PROXY | GENTOO_MIRRORS
+    | HTTP_PROXY | HTTPS_PROXY | INSTALL_MASK
+    | MAKEOPTS | NOCOLOR
+    | PKGDIR | PORT_LOGDIR | PORT_LOGDIR_CLEAN
+    | PORTAGE_BINHOST | PORTAGE_BINHOST_HEADER_URI
+    | PORTAGE_BINPKG_FORMAT | PORTAGE_BINPKG_TAR_OPTS
+    | PORTAGE_COMPRESS | PORTAGE_COMPRESS_FLAGS
+    | PORTAGE_ELOG_CLASSES | PORTAGE_ELOG_COMMAND
+    | PORTAGE_ELOG_MAILFROM | PORTAGE_ELOG_MAILURI | PORTAGE_ELOG_SYSTEM
+    | PORTAGE_FETCH_CHECKSUM_TRY_MIRRORS | PORTAGE_FETCH_RESUME_MIN_SIZE
+    | PORTAGE_IONICE_COMMAND | PORTAGE_LOG_FILTER_FILE_CMD
+    | PORTAGE_LOGDIR | PORTAGE_LOGDIR_CLEAN
+    | PORTAGE_NICENESS | PORTAGE_RSYNC_EXTRA_OPTS | PORTAGE_RSYNC_OPTS
+    | PORTAGE_RSYNC_INITIAL_TIMEOUT | PORTAGE_RSYNC_RETRIES
+    | PORTAGE_SCHEDULING_POLICY | PORTAGE_TMPDIR | PORTAGE_TMPFS
+    | PORTAGE_WORKDIR_MODE
+    | PORTDIR | PORTDIR_OVERLAY
+    | QA_STRICT_EXECSTACK | QA_STRICT_WX_LOAD | QA_STRICT_TEXTRELS
+    | RESUMECOMMAND | ROOT | RPMDIR | RSYNC_EXCLUDEFROM
+    | RSYNC_RETRIES | RSYNC_TIMEOUT
+    | SYNC | SIGNING_KEY | USE | USE_ORDER
+    | LINGUAS | L10N | EXTRA_ECONF
+    )
+
+contexts:
+  main:
+    - include: comments
+    - include: assignments
+
+  comments:
+    - match: '#'
+      scope: punctuation.definition.comment.gentoo
+      push: comment-line
+
+  comment-line:
+    - meta_scope: comment.line.number-sign.gentoo
+    - match: '$'
+      pop: true
+
+  assignments:
+    # Naughty/discouraged variables (should not appear in make.conf)
+    - match: '({{naughty_vars}})\s*(=)'
+      captures:
+        1: invalid.illegal.variable.gentoo
+        2: keyword.operator.assignment.gentoo
+      push: value-unquoted
+
+    # Well-known portage variables
+    - match: '({{portage_vars}})\s*(\+?=)'
+      captures:
+        1: variable.language.portage.gentoo
+        2: keyword.operator.assignment.gentoo
+      push: value-unquoted
+
+    # USE variable (special handling for USE flag list)
+    - match: '(USE)\s*(\+?=)'
+      captures:
+        1: variable.language.use.gentoo
+        2: keyword.operator.assignment.gentoo
+      push: use-value
+
+    # Generic variable assignment
+    - match: '({{identifier}})\s*(\+?=)'
+      captures:
+        1: variable.other.gentoo
+        2: keyword.operator.assignment.gentoo
+      push: value-unquoted
+
+  value-unquoted:
+    - match: '$'
+      pop: true
+    - include: quoted-string
+    - include: variable-reference
+    - match: '[^\s"''`#\\]+'
+      scope: string.unquoted.gentoo
+
+  use-value:
+    - match: '$'
+      pop: true
+    - match: '"'
+      scope: punctuation.definition.string.begin.gentoo
+      push: use-string-double
+    - match: "'"
+      scope: punctuation.definition.string.begin.gentoo
+      push: use-string-single
+
+  use-string-double:
+    - meta_scope: string.quoted.double.gentoo
+    - match: '"'
+      scope: punctuation.definition.string.end.gentoo
+      pop: true
+    - include: variable-reference
+    - include: use-flags
+    - match: '\\\n'
+      scope: punctuation.separator.continuation.gentoo
+
+  use-string-single:
+    - meta_scope: string.quoted.single.gentoo
+    - match: "'"
+      scope: punctuation.definition.string.end.gentoo
+      pop: true
+    - include: use-flags
+
+  use-flags:
+    # Disabled USE flag
+    - match: '(-)[a-zA-Z0-9][a-zA-Z0-9_\-]*'
+      captures:
+        1: keyword.operator.disable.gentoo
+      scope: keyword.other.use-flag.disabled.gentoo
+
+    # USE_EXPAND group selector (e.g. -@PYTHON_TARGETS, @PYTHON_TARGETS)
+    - match: '-?@[a-zA-Z0-9_\-]+'
+      scope: constant.language.use-expand.gentoo
+
+    # Negated wildcard
+    - match: '-\*'
+      scope: keyword.operator.wildcard.disabled.gentoo
+
+    # Enabled USE flag
+    - match: '[a-zA-Z0-9][a-zA-Z0-9_\-]*'
+      scope: support.constant.use-flag.enabled.gentoo
+
+  quoted-string:
+    - match: '"'
+      scope: punctuation.definition.string.begin.gentoo
+      push: double-quoted-string
+    - match: "'"
+      scope: punctuation.definition.string.begin.gentoo
+      push: single-quoted-string
+
+  double-quoted-string:
+    - meta_scope: string.quoted.double.gentoo
+    - match: '"'
+      scope: punctuation.definition.string.end.gentoo
+      pop: true
+    - include: variable-reference
+    - match: '\\.'
+      scope: constant.character.escape.gentoo
+    - match: '\\\n'
+      scope: punctuation.separator.continuation.gentoo
+
+  single-quoted-string:
+    - meta_scope: string.quoted.single.gentoo
+    - match: "'"
+      scope: punctuation.definition.string.end.gentoo
+      pop: true
+
+  variable-reference:
+    # ${VAR} or ${VAR:-default} style references
+    - match: '\$\{'
+      scope: punctuation.definition.variable.begin.gentoo
+      push: variable-brace
+    # $VAR style references
+    - match: '\$[a-zA-Z_][a-zA-Z0-9_]*'
+      scope: variable.other.gentoo
+
+  variable-brace:
+    - meta_scope: variable.other.gentoo
+    - match: '\}'
+      scope: punctuation.definition.variable.end.gentoo
+      pop: true
+    - match: '[^}]+'

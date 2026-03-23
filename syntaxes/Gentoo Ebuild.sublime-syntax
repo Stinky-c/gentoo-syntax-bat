@@ -1,0 +1,129 @@
+%YAML 1.2
+---
+# Syntax highlighting for Gentoo ebuild and eclass files.
+# Based on gentoo/gentoo-syntax vim plugin.
+# https://github.com/gentoo/gentoo-syntax
+name: Gentoo Ebuild
+scope: source.ebuild
+version: 2
+
+file_extensions:
+  - ebuild
+  - eclass
+
+first_line_match: |-
+  (?xi:
+    ^ \#!.*(bash|sh)\b           # shebang
+  | ^ \s* \# .*ebuild            # ebuild comment header
+  )
+
+extends: Bash
+
+variables:
+  ebuild_phase_functions: |-
+    (?x: pkg_pretend | pkg_nofetch | pkg_setup
+       | src_unpack | src_prepare | src_configure
+       | src_compile | src_test | src_install
+       | pkg_preinst | pkg_postinst | pkg_prerm | pkg_postrm
+       | pkg_config | pkg_info )
+  ebuild_default_functions: |-
+    (?x: default
+       | default_pkg_nofetch | default_src_unpack | default_src_prepare
+       | default_src_configure | default_src_compile | default_src_test
+       | default_src_install )
+  ebuild_core_keywords: |-
+    (?x: use | has_version | best_version | use_with | use_enable
+       | keepdir | econf | die | einstall | einfo | ewarn | eqawarn | eerror | elog
+       | eapply | eapply_user | ebegin | eend
+       | diropts | exeopts | insopts | libopts
+       | insinto | exeinto | into )
+  ebuild_install_keywords: |-
+    (?x: dobin | docinto | dodoc | doexe | doheader | doinfo | doins
+       | dolib | dolib\.a | dolib\.so | doman | dosbin | dosym | emake
+       | newbin | newexe | newheader | newins | newman | newsbin
+       | dodir | domo | doinitd | doconfd | doenvd
+       | fowners | fperms
+       | newconfd | newdoc | newenvd | newinitd | newlib\.a | newlib\.so
+       | einstalldocs )
+  ebuild_utility_keywords: |-
+    (?x: has | unpack | hasv | usev | usex
+       | in_iuse | get_libdir | dostrip
+       | ver_cut | ver_rs | ver_test )
+  ebuild_sandbox_keywords: |-
+    (?x: addread | addwrite | adddeny | addpredict )
+  ebuild_deprecated_keywords: |-
+    (?x: check_KV | dohard | dohtml | prepall | prepalldocs
+       | prepallinfo | prepallman | prepallstrip | dosed | dojar | hasq | useq
+       | draw_line | have_NPTL | check_license | ebeep | epause | built_with_use
+       | dobashcompletion | bash-completion_pkg_postinst
+       | python_pkg_setup | python_convert_shebangs | python_src_prepare
+       | python_src_configure | python_src_compile | python_src_test
+       | python_src_install | python_execute_function | python_mod_optimize
+       | python_mod_cleanup | games_pkg_setup | games_src_compile | games_pkg_postinst )
+  ebuild_language_variables: |-
+    (?x: EAPI | PV | PN | PVR | P | PF | PR | S | D | T | A
+       | FILESDIR | DISTDIR | WORKDIR | ROOT | EPREFIX | ED | EROOT
+       | CATEGORY | SLOT )
+  ebuild_metadata_variables: |-
+    (?x: SRC_URI | HOMEPAGE | DESCRIPTION | LICENSE | KEYWORDS | IUSE
+       | DEPEND | RDEPEND | PDEPEND | BDEPEND | IDEPEND
+       | RESTRICT | PROPERTIES | REQUIRED_USE
+       | DOCS | HTML_DOCS | PATCHES | MY_PN | MY_PV | MY_P )
+
+contexts:
+  main:
+    # EAPI declaration (highest priority - mark distinctly)
+    - match: '^(EAPI)(=)([0-9]+)'
+      captures:
+        1: variable.language.eapi.ebuild
+        2: keyword.operator.assignment.ebuild
+        3: constant.numeric.eapi.ebuild
+
+    # Ebuild phase functions when used as function definitions
+    - match: '^\s*({{ebuild_phase_functions}})\s*(\(\s*\))'
+      captures:
+        1: entity.name.function.phase.ebuild
+        2: punctuation.definition.function.ebuild
+
+    # Phase functions when called
+    - match: '\b({{ebuild_phase_functions}})\b'
+      scope: support.function.phase.ebuild
+
+    # Default functions
+    - match: '\b({{ebuild_default_functions}})\b'
+      scope: support.function.default.ebuild
+
+    # Core portage helper functions
+    - match: '\b({{ebuild_core_keywords}})\b'
+      scope: keyword.other.helper.ebuild
+
+    # Install helper functions
+    - match: '\b({{ebuild_install_keywords}})\b'
+      scope: keyword.other.install.ebuild
+
+    # Utility functions
+    - match: '\b({{ebuild_utility_keywords}})\b'
+      scope: keyword.other.utility.ebuild
+
+    # Sandbox functions
+    - match: '\b({{ebuild_sandbox_keywords}})\b'
+      scope: keyword.other.sandbox.ebuild
+
+    # inherit statement
+    - match: '\b(inherit)\b'
+      scope: keyword.control.inherit.ebuild
+
+    # Deprecated/banned functions
+    - match: '\b({{ebuild_deprecated_keywords}})\b'
+      scope: invalid.deprecated.ebuild
+
+    # Special ebuild language variables
+    - match: '(?<!\$)\b({{ebuild_language_variables}})\b(?=\s*[+?]?=)'
+      scope: variable.language.ebuild
+
+    # Ebuild metadata variables
+    - match: '(?<!\$)\b({{ebuild_metadata_variables}})\b(?=\s*[+?]?=)'
+      scope: variable.other.metadata.ebuild
+
+    # Fall through to Bash for all other patterns
+    - include: scope:source.shell.bash
