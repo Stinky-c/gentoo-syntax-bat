@@ -1,0 +1,81 @@
+%YAML 1.2
+---
+# Syntax highlighting for Gentoo package.mask and package.unmask files.
+# Based on gentoo/gentoo-syntax vim plugin.
+# https://github.com/gentoo/gentoo-syntax
+name: Gentoo Package Mask
+scope: source.gentoo.package-mask
+version: 2
+
+file_extensions:
+  - mask
+  - unmask
+
+variables:
+  # Package atom version operators
+  version_op: '(?:>=|<=|[><=~]|!=)?'
+  # Package category (lowercase letters, digits, hyphens)
+  pkg_category: '[a-zA-Z0-9][a-zA-Z0-9\-_+]*'
+  # Package name
+  pkg_name: '[a-zA-Z0-9][a-zA-Z0-9\-_+]*'
+  # Package version
+  pkg_version: '-\d+(?:\.\d+)*[a-z]?(?:_(?:alpha|beta|pre|rc|p)\d*)*(?:-r\d+)?'
+  # SLOT restriction
+  pkg_slot: ':[0-9a-zA-Z_+\-*/=.]*'
+  # Repository restriction
+  pkg_repo: '::[a-zA-Z0-9\-_+]+'
+
+contexts:
+  main:
+    - include: comments
+    - include: package-atoms
+
+  comments:
+    # Full-line and inline comments
+    - match: '#'
+      scope: punctuation.definition.comment.gentoo
+      push: comment-body
+
+  comment-body:
+    - meta_scope: comment.line.number-sign.gentoo
+    - include: comment-special
+    - match: '$'
+      pop: true
+
+  comment-special:
+    # Email addresses in comments
+    - match: '<[^<>@\s]+@[^<>@.\s]+\.[^<>@\s]+>'
+      scope: entity.other.email.gentoo
+
+    # Dates in comments e.g. (15 Jan 2024) or (Jan 15 2024)
+    - match: '\(\d{1,2}\s+\w+\s+\d{4}\)'
+      scope: constant.other.date.gentoo
+    - match: '\(\w+\s+\d{1,2}\s+\d{4}\)'
+      scope: constant.other.date.gentoo
+
+    # Bug references
+    - match: '(?:[gG]entoo\s+)?[bB]ug\s+#?\s*\d+'
+      scope: markup.underline.link.bug.gentoo
+
+  package-atoms:
+    # Package atoms with optional version operator
+    - match: |-
+        (?x)
+        ^[\t\ ]*
+        ({{version_op}})
+        ({{pkg_category}}/{{pkg_name}})
+        ({{pkg_version}})?
+        ({{pkg_slot}})?
+        ({{pkg_repo}})?
+      captures:
+        1: keyword.operator.version.gentoo
+        2: entity.name.package.gentoo
+        3: constant.numeric.version.gentoo
+        4: variable.other.slot.gentoo
+        5: variable.other.repo.gentoo
+
+    # Wildcard atoms  (e.g. app-editors/*)
+    - match: '^[\t\ ]*({{pkg_category}})/(\*)'
+      captures:
+        1: entity.name.category.gentoo
+        2: keyword.operator.wildcard.gentoo

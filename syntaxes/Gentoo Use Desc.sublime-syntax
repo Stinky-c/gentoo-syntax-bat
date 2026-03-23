@@ -1,0 +1,62 @@
+%YAML 1.2
+---
+# Syntax highlighting for Gentoo use.desc and use.local.desc files.
+# Based on gentoo/gentoo-syntax vim plugin.
+# https://github.com/gentoo/gentoo-syntax
+name: Gentoo Use Desc
+scope: source.gentoo.use-desc
+version: 2
+
+file_extensions:
+  - desc
+
+variables:
+  pkg_category: '[a-zA-Z0-9][a-zA-Z0-9\-_+]*'
+  pkg_name: '[a-zA-Z0-9][a-zA-Z0-9\-_+]*'
+  use_flag: '[a-zA-Z0-9][a-zA-Z0-9\-_+@:]*'
+
+contexts:
+  main:
+    - include: comments
+    - include: use-local-desc-entry
+    - include: use-global-desc-entry
+
+  comments:
+    - match: '#'
+      scope: punctuation.definition.comment.gentoo
+      push: comment-body
+
+  comment-body:
+    - meta_scope: comment.line.number-sign.gentoo
+    - include: comment-special
+    - match: '$'
+      pop: true
+
+  comment-special:
+    - match: '<[^<>@\s]+@[^<>@.\s]+\.[^<>@\s]+>'
+      scope: entity.other.email.gentoo
+    - match: '(?:[gG]entoo\s+)?[bB]ug\s+#?\s*\d+'
+      scope: markup.underline.link.bug.gentoo
+
+  # use.local.desc format: category/package:flag - Description
+  use-local-desc-entry:
+    - match: '^({{pkg_category}}/{{pkg_name}})(:)({{use_flag}})(\s*-\s*)'
+      captures:
+        1: entity.name.package.gentoo
+        2: punctuation.separator.package-flag.gentoo
+        3: variable.other.use-flag.gentoo
+        4: punctuation.separator.description.gentoo
+      push: description
+
+  # use.desc format: flag - Description (no package prefix)
+  use-global-desc-entry:
+    - match: '^({{use_flag}})(\s*-\s*)'
+      captures:
+        1: variable.other.use-flag.gentoo
+        2: punctuation.separator.description.gentoo
+      push: description
+
+  description:
+    - meta_scope: string.unquoted.description.gentoo
+    - match: '$'
+      pop: true

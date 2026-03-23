@@ -1,0 +1,98 @@
+%YAML 1.2
+---
+# Syntax highlighting for Gentoo package.keywords and package.accept_keywords files.
+# Based on gentoo/gentoo-syntax vim plugin.
+# https://github.com/gentoo/gentoo-syntax
+name: Gentoo Package Keywords
+scope: source.gentoo.package-keywords
+version: 2
+
+file_extensions:
+  - keywords
+  - accept_keywords
+
+variables:
+  version_op: '(?:>=|<=|[><=~]|!=)?'
+  pkg_category: '[a-zA-Z0-9][a-zA-Z0-9\-_+]*'
+  pkg_name: '[a-zA-Z0-9][a-zA-Z0-9\-_+]*'
+  pkg_version: '-\d+(?:\.\d+)*[a-z]?(?:_(?:alpha|beta|pre|rc|p)\d*)*(?:-r\d+)?'
+  pkg_slot: ':[0-9a-zA-Z_+\-*/=.]*'
+  pkg_repo: '::[a-zA-Z0-9\-_+]+'
+
+contexts:
+  main:
+    - include: comments
+    - include: package-lines
+
+  comments:
+    - match: '#'
+      scope: punctuation.definition.comment.gentoo
+      push: comment-body
+
+  comment-body:
+    - meta_scope: comment.line.number-sign.gentoo
+    - include: comment-special
+    - match: '$'
+      pop: true
+
+  comment-special:
+    - match: '<[^<>@\s]+@[^<>@.\s]+\.[^<>@\s]+>'
+      scope: entity.other.email.gentoo
+    - match: '\(\d{1,2}\s+\w+\s+\d{4}\)'
+      scope: constant.other.date.gentoo
+    - match: '\(\w+\s+\d{1,2}\s+\d{4}\)'
+      scope: constant.other.date.gentoo
+    - match: '(?:[gG]entoo\s+)?[bB]ug\s+#?\s*\d+'
+      scope: markup.underline.link.bug.gentoo
+
+  package-lines:
+    # Package atom (category/name with optional version operator)
+    - match: |-
+        (?x)
+        ^[\t\ ]*
+        ({{version_op}})
+        ({{pkg_category}}/{{pkg_name}})
+        ({{pkg_version}})?
+        ({{pkg_slot}})?
+        ({{pkg_repo}})?
+      captures:
+        1: keyword.operator.version.gentoo
+        2: entity.name.package.gentoo
+        3: constant.numeric.version.gentoo
+        4: variable.other.slot.gentoo
+        5: variable.other.repo.gentoo
+      push: keyword-list
+
+    # Wildcard atoms
+    - match: '^[\t\ ]*({{pkg_category}})/(\*)'
+      captures:
+        1: entity.name.category.gentoo
+        2: keyword.operator.wildcard.gentoo
+      push: keyword-list
+
+  keyword-list:
+    - match: '$'
+      pop: true
+
+    # Global keywords: ** (accept all keywords)
+    - match: '-?\*\*'
+      scope: constant.language.keyword.all.gentoo
+
+    # Testing keyword: ~arch (tilde-prefixed)
+    - match: '-?~[a-z0-9\-]+'
+      scope: keyword.other.keyword.testing.gentoo
+
+    # Negated keyword
+    - match: '-[a-z0-9\-]+'
+      scope: keyword.operator.keyword.negated.gentoo
+
+    # Stable keyword: arch
+    - match: '[a-z][a-z0-9\-]+'
+      scope: support.constant.keyword.stable.gentoo
+
+    # Wildcard
+    - match: '\*'
+      scope: keyword.operator.wildcard.gentoo
+
+    # Whitespace between keywords
+    - match: '\s+'

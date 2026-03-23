@@ -1,0 +1,52 @@
+%YAML 1.2
+---
+# Syntax highlighting for Gentoo thirdpartymirrors files.
+# Based on gentoo/gentoo-syntax vim plugin.
+# https://github.com/gentoo/gentoo-syntax
+name: Gentoo Mirrors
+scope: source.gentoo.mirrors
+version: 2
+
+contexts:
+  main:
+    - include: comments
+    - include: mirror-entries
+
+  comments:
+    - match: '#'
+      scope: punctuation.definition.comment.gentoo
+      push: comment-body
+
+  comment-body:
+    - meta_scope: comment.line.number-sign.gentoo
+    - match: '$'
+      pop: true
+
+  mirror-entries:
+    # Mirror name at start of line (no #, no whitespace)
+    - match: '^[^#\s]\S*'
+      scope: entity.name.label.mirror.gentoo
+      push: url-list
+
+  url-list:
+    - match: '$'
+      pop: true
+
+    # HTTPS URLs (highlighted distinctly - preferred)
+    - match: 'https://\S+'
+      scope: markup.underline.link.https.gentoo
+
+    # HTTP URLs
+    - match: 'http://\S+'
+      scope: string.other.link.http.gentoo
+
+    # FTP URLs
+    - match: 'ftp://\S+'
+      scope: string.other.link.ftp.gentoo
+
+    # Generic URLs (rsync, etc.)
+    - match: '[a-z][a-z0-9+\-.]*://\S+'
+      scope: string.other.link.generic.gentoo
+
+    # Whitespace between URLs
+    - match: '\s+'
